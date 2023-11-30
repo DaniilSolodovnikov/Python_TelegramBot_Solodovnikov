@@ -1,7 +1,7 @@
 import telegram
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-updater = Updater(token="6737933348:AAGpe7GRoxIDf96aNHUGXP8tVGlithuFjwI")
+updater = Updater(token="API_TOKEN")
 
 from main3 import create_note, read_note, edit_note, delete_note
 
