@@ -18,7 +18,7 @@ def ask_and_make_move(player, board):
     make_move(player, board, x, y)
 
 def ask_move(player, board):
-    x, y = (f'{player}, enter x and y coordinates (e.g. 0 0): ').strip().split()
+    x, y = input((f'{player}, enter x and y coordinates (e.g. 0 0): ').strip().split())
     x, y = int(x), int(y)
     if (0 <= x <= 2) and (0 <= y <= 2) and (board[x][y] == ' '):
         return (x, y)
@@ -34,7 +34,7 @@ def make_move(player, board, x, y):
     return True
 
 def check_win(player, board):
-    if i in range(3):
+    for i in range(3):
         if board[i] == [player, player, player]:
             return True
         if board[0][i] == player and board[1][i] == player and board[2][i] == player:
@@ -63,6 +63,6 @@ def tic_tac_toe():
             if not tie_game:
                 break
             player = '0' if player == 'X' else 'X'
-            restart = input('Хотите сыграть еще раз? (y/n)')
+        restart = input('Хотите сыграть еще раз? (y/n)')
             if restart.lower() != y:
                 break
