@@ -142,18 +142,23 @@ class Calendar:
 
 calendar = Calendar()
 
-def event_create_handler(event, context):
-    try:
+def event_create_handler(context, update):
+  try:
+      if len(update.message.text) >= 14:
         event_name = update.message.text[14:]
-        event_date = "2023-03-14"
-        event_time = "14:00"
-        event_details = "Описание события"
+
+        try:
+            event_date = "2023-03-14"
+            event_time = "14:00"
+        except:
+            context.bot.send_message(chat_id=update.message.chat_id, text=f'Ошибка при определении даты и времени события {event_name}')
 
         event_id = calendar.create_event(event_name, event_date, event_time, event_details)
         context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие {event_name} создано и имеет номер {event_id}.")
-
-    except:
-        context.bot.send_message(chat_id=update.message.chat_id, text="При создании события произошла ошибка.")
+      else:
+        context.bot.send_message(chat_id=update.message.chat_id, text='Сообщение слишком короткое')
+  except:
+      context.bot.send_message(chat_id=update.message.chat_id, text="При создании события произошла ошибка.")
 
 
 functions_clss = 'create_event', 'read_event', 'edit_event', 'delete_event', 'display_events' #Создаем выбор функции из класса
