@@ -1,12 +1,14 @@
 import os
 import datetime
+import sqlite3
 
-from telegram.ext import CommandHandler, updater
+from telegram.ext import CommandHandler, Updater
 
 
 class Calendar:
     def __init__(self):
         self.events = {}
+        self.conn = sqlite3.connect('calendar.db') #добавил строку (1 замечание)
         c = self.conn.cursor()
         c.execute("""
                     CREATE TABLE IF NOT EXISTS events (
@@ -20,12 +22,16 @@ class Calendar:
         self.conn.commit()
 
     def create_event(self, event_name, event_date, event_time, event_details):
-        c = self.conn.cursor()
-        c.execute("""
-            INSERT INTO events (name, date, time, details) VALUES (?, ?, ?, ?)
-        """, (event_name, event_date, event_time, event_details))
-        self.conn.commit()
-        return c
+        try:
+            event_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M:%S")
+            c = self.conn.cursor()
+            c.execute("""
+                        INSERT INTO events (name, date, time, details) VALUES (?, ?, ?, ?)
+                    """, (event_name, event_date, event_time, event_details))
+            self.conn.commit()
+            return c.lastrowid #возвращаю .lastrowib (2 замечание)
+        except ValueError:
+            return 'Неверный формат даты или времени. Используйте формат YYYY-MM-DD HH:MM:SS'
 
     def read_event(self, event_id):
         c = self.conn.cursor()
@@ -41,7 +47,7 @@ class Calendar:
                 "time": event[3],
                 "details": event[4]
             }
-        return 'Событие не найдено'
+        return None #Еще одно замечание исправленно
 
     def edit_event(self, event_id, new_details):
         c = self.conn.cursor()
@@ -67,10 +73,10 @@ class Calendar:
         events = c.fetchall()
         if events:
             for event in events:
-                print(f"Event ID: {event[0]}, Имя: {event[1]}, Дата: {event[2]}, "
+                return (f"Event ID: {event[0]}, Имя: {event[1]}, Дата: {event[2]}, "
                       f"Время: {event[3]}, Детали: {event[4]}")
         else:
-            print('Нет событий')
+            return 'Нет событий'
 
 
 calendar = Calendar()
@@ -98,21 +104,21 @@ def event_create_handler(update, context):
 
 def event_read_handler(update, context):
     try:
-        event_name = update.message.text
-        event_id = calendar.read_event(event_name)
-        context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие {event_name} прочитано {event_id}.")
-    except:
-        context.bot.send_message(chat_id=update.message.chat_id, text="При прочтении события произошла ошибка.")
+        event_id = int(update.message.text)
+        event_data = calendar.read_event(event_id)
+        if event_data:
+            context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие с ID {event_id}: {event_data}")
+        else:
+            context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие с ID {event_id} не найдено.")
+    except ValueError:
+        context.bot.send_message(chat_id=update.message.chat_id, text="Введите корректный ID события (число).")
+    except Exception as e:
+        context.bot.send_message(chat_id=update.message.chat_id, text=f"При прочтении события произошла ошибка: {e}")
 
 
 def event_edit_handler(update, context, event_id, new_details):
     try:
-        event_name = update.message.text
-        path = f"{event_name}.txt"
-        if os.path.isfile(path):
-            calendar.edit_event(event_id, new_details)
-        else:
-            print("Такой заметки не существует. Введите другой запрос.")
+        calendar.edit_event(event_id, new_details)
         context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие с ID {event_id} отредактировано.")
     except Exception as e:
         context.bot.send_message(chat_id=update.message.chat_id,
@@ -121,12 +127,7 @@ def event_edit_handler(update, context, event_id, new_details):
 
 def event_delete_handler(update, context, event_id):
     try:
-        event_name = update.message.text
-        path = f"{event_name}.txt"
-        if os.path.isfile(path):
-            calendar.delete_events(event_id)
-        else:
-            print("Такой заметки не существует. Введите другой запрос.")
+        calendar.delete_events(event_id)
         context.bot.send_message(chat_id=update.message.chat_id, text=f"Событие с ID {event_id} удалено.")
     except Exception as e:
         context.bot.send_message(chat_id=update.message.chat_id, text=f"При удалении события произошла ошибка: {e}")
@@ -139,8 +140,8 @@ def event_display_handler(update, context):
         context.bot.send_message(chat_id=update.message.chat_id, text=f"При сортировке событий произошла ошибка: {e}")
 
 
-updater.dispatcher.add_handler(CommandHandler('create_event', event_create_handler))
-updater.dispatcher.add_handler(CommandHandler('read_event', event_read_handler))
-updater.dispatcher.add_handler(CommandHandler('edit_event', event_edit_handler))
-updater.dispatcher.add_handler(CommandHandler('delete_event', event_delete_handler))
-updater.dispatcher.add_handler(CommandHandler('display_event', event_display_handler))
+Updater.dispatcher.add_handler(CommandHandler('create_event', event_create_handler))
+Updater.dispatcher.add_handler(CommandHandler('read_event', event_read_handler))
+Updater.dispatcher.add_handler(CommandHandler('edit_event', event_edit_handler))
+Updater.dispatcher.add_handler(CommandHandler('delete_event', event_delete_handler))
+Updater.dispatcher.add_handler(CommandHandler('display_event', event_display_handler))
